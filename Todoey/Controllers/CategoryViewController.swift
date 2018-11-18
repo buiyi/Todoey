@@ -7,12 +7,13 @@
 //
 
 import UIKit
-import CoreData
+import RealmSwift
 
 class CategoryViewController: UITableViewController {
     
-    var array = [Category]()
-    let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
+    let realm = try! Realm()
+    
+    var array : Results<Category>?
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -31,11 +32,10 @@ class CategoryViewController: UITableViewController {
         }
         
         let action = UIAlertAction(title: "Add", style: .default) { (action) in
-            let cat = Category(context: self.context)
+            let cat = Category()
             cat.name = textField.text!
-            
-            self.array.append(cat)
-            self.saveData()
+        
+            self.save(category: cat)
             
         }
         
@@ -45,31 +45,29 @@ class CategoryViewController: UITableViewController {
     }
     //MARK: TableView DataSource Methods
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return array.count
+        return array?.count ?? 1
     }
     
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "CategoryCell", for: indexPath)
         
-        cell.textLabel?.text = array[indexPath.row].name
+        cell.textLabel?.text = array?[indexPath.row].name ?? "No Categories Added"
         
         return cell
     }
     
     //MARK: Data Manipulation Methods
     //
-    func loadData(with request : NSFetchRequest<Category> = Category.fetchRequest()){
-        do{
-            array = try context.fetch(request)
-        }catch{
-            print("Error fetching data \(error)")
-        }
+    func loadData(){
+        array = realm.objects(Category.self)
         self.tableView.reloadData()
     }
     
-    func saveData(){
+    func save(category : Category){
         do{
-            try context.save()
+            try realm.write {
+                realm.add(category)
+            }
         }catch{
             print("Error fetching data \(error)")
         }
@@ -84,7 +82,7 @@ class CategoryViewController: UITableViewController {
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
         let destinationVC = segue.destination as! TodoListViewController
         
-        destinationVC.selectedCategory = array[tableView.indexPathForSelectedRow!.row]
+        destinationVC.selectedCategory = array?[tableView.indexPathForSelectedRow!.row]
     
     }
 }
